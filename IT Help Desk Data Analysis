@@ -1,0 +1,88 @@
+WITH description_length AS (SELECT ticket_type,
+ROUND(AVG(days_open)::NUMERIC, 0) AS avg_resolution_days
+FROM jstew621.it_help_desk2
+GROUP BY ticket_type)
+SELECT avg_resolution_days,ticket_type
+FROM description_length
+WHERE avg_resolution_days IS NOT NULL;
+
+--Determine the average days to resolve ticket types.
+SELECT Count(ticket_type) AS number_of_ticket_type,
+ticket_type,days_open
+FROM jstew621.it_help_desk2
+GROUP BY days_open,ticket_type
+ORDER BY number_of_ticket_type DESC ;
+--The result number of ticket type and days open
+
+SELECT CORR(
+CASE 
+WHEN severity='Minor'THEN 1
+WHEN severity='Normal' THEN 2
+WHEN severity='Critical' THEN 4
+ELSE 0
+END,
+CASE
+WHEN priority = 'unassigned' THEN 0
+WHEN priority ='Low'THEN 1
+WHEN priority = 'Medium' THEN 2
+WHEN priority = 'High' THEN 3
+ELSE 0
+END) AS correltion_coeficient
+FROM jstew621.it_help_desk2
+WHERE severity IS NOT NULL AND priority IS NOT NULL;
+
+--The result is correlation coeficient of severity and priority of tickets
+
+SELECT priority,
+COUNT(*) AS number_of_tickets
+FROM jstew621.it_help_desk2
+GROUP BY priority
+ORDER BY number_of_tickets DESC;
+--Result the count of tickets based on priority level.
+SELECT 
+priority,
+ticket_type,
+COUNT(*) AS count_of_tickets
+FROM jstew621.it_help_desk2
+GROUP BY priority,ticket_type
+ORDER BY count_of_tickets DESC;
+--To determine the count of the ticket type based on priority level.
+
+  --Hypothesis 1: customer satisfaction
+  --Tickets resolved on the first attempt have higher customer satisfaction scores
+ 
+SELECT
+CASE
+WHEN days_open = 1 THEN 'First_Attempt'
+ELSE 'Multiple_Attempts'
+END AS Attempt_to_resolve_tickets,
+COUNT(ticket) AS total_tickets,
+ROUND(AVG(CAST(satisfaction AS INTEGER)),1) AS Avg_customer_satisfaction
+FROM jstew621.it_help_desk2 
+GROUP BY 
+CASE 
+WHEN days_open = 1 THEN 'First_Attempt' 
+ELSE 'Multiple_Attempts' END;
+
+ --Hypothesis 2:prioritzation effectiveness.
+
+  --High priority tickets are resolved faster than low priority tickets.
+  Select priority,
+  COUNT(ticket) AS total_tickets,
+ ROUND(AVG(days_open)::NUMERIC,0) AS Avg_days_of_resolution
+  FROM jstew621.it_help_desk2
+  GROUP BY priority
+  ORDER BY total_tickets DESC;
+
+--Hypothesis 3: work load distribution.Certain it_owners handle more complex tickets,
+--leading to longer resolution times.
+
+
+SELECT it_owner,
+COUNT(ticket) AS total_tickets_resolved,
+ROUND(AVG(days_open)::NUMERIC,0) AS Avg_days_of_open_tickets,
+ROUND(AVG(CAST(SUBSTRING(severity FROM '^[0-9]+')AS INTEGER)), 1) AS AVG_complexity
+FROM jstew621.it_help_desk2
+GROUP BY it_owner
+ORDER BY AVG_complexity DESC;
+
